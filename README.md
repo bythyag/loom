@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/loom-logo.svg" alt="Loom logo" width="180" />
+</p>
+
 # Loom
 
 **A hardware-aware runtime for efficient AI agents.**
