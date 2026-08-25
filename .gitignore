@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Local models / benchmark artifacts
+models/
+artifacts/
+benchmark-results/
+*.gguf
+*.safetensors
+
+# Environment
+.env
+.env.*
+
+# macOS
+.DS_Store
