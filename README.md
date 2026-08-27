@@ -61,6 +61,22 @@ The first question Loom aims to answer is:
 
 > **How much of a useful agent workload can an 8 GB M1 Mac run locally without materially reducing task quality?**
 
+## Development setup
+
+Loom requires Python 3.11 or newer and uses [uv](https://docs.astral.sh/uv/)
+for its environment and lock file:
+
+```shell
+uv sync
+uv run pytest
+uv run ruff check .
+```
+
+Install a local runtime independently when needed with `uv sync --extra ollama`
+or `uv sync --extra mlx`. Copy `.env.example` to `.env` for local secrets.
+`OPENROUTER_API_KEY` is read only from the process environment or that ignored
+local file; it does not belong in `config.example.toml`.
+
 ## License
 
-TBD.
+Licensed under the Apache License 2.0. See [LICENSE](LICENSE).

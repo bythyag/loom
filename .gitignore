@@ -13,12 +13,19 @@ build/
 models/
 artifacts/
 benchmark-results/
+results/
+traces/
 *.gguf
 *.safetensors
 
 # Environment
 .env
 .env.*
+!.env.example
+*.pem
+*.key
+credentials/
+secrets/
 
 # macOS
 .DS_Store
