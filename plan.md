@@ -79,14 +79,14 @@ cloud_token_reduction = 1 - (loom_cloud_tokens / cloud_only_cloud_tokens)
 
 ### Required setup documentation
 
-- [ ] Document installing Python 3.11+, `uv`, and the project environment.
-- [ ] Document the Ollama macOS application/CLI installation and its default local
+- [x] Document installing Python 3.11+, `uv`, and the project environment.
+- [x] Document the Ollama macOS application/CLI installation and its default local
       API at `http://localhost:11434`.
-- [ ] Document MLX-LM installation and a minimal generation smoke test.
-- [ ] Document OpenRouter account, credit, and API-key setup.
-- [ ] Document expected model storage and free-disk requirements before downloads.
-- [ ] Document how to remove downloaded experimental models and generated results.
-- [ ] Keep any MLX HTTP server bound to localhost and identify it as an
+- [x] Document MLX-LM installation and a minimal generation smoke test.
+- [x] Document OpenRouter account, credit, and API-key setup.
+- [x] Document expected model storage and free-disk requirements before downloads.
+- [x] Document how to remove downloaded experimental models and generated results.
+- [x] Keep any MLX HTTP server bound to localhost and identify it as an
       experimental development interface rather than a production service.
 
 ### Environment preflight

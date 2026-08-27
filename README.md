@@ -61,6 +61,12 @@ The first question Loom aims to answer is:
 
 > **How much of a useful agent workload can an 8 GB M1 Mac run locally without materially reducing task quality?**
 
+## Development setup
+
+See the [macOS development setup guide](docs/setup.md) for Python and `uv`
+installation, Ollama and MLX-LM smoke tests, optional OpenRouter configuration,
+disk-space planning, and safe experiment cleanup.
+
 ## License
 
 TBD.
