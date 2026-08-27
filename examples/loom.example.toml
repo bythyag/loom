@@ -1,0 +1,40 @@
+schema_version = "1"
+trace_schema_version = "1"
+
+[endpoints]
+ollama = "http://localhost:11434"
+openrouter = "https://openrouter.ai/api/v1"
+
+[models]
+ollama = "qwen2.5-coder:1.5b"
+mlx = "mlx-community/Qwen2.5-Coder-1.5B-Instruct-4bit"
+openrouter = "openai/model-slug-pinned-at-benchmark-freeze"
+
+[routing]
+local_max_difficulty = 0.45
+cloud_min_quality = 0.90
+max_memory_pressure = 0.80
+allow_cloud_escalation = true
+
+[limits]
+request_timeout_seconds = 120.0
+tool_timeout_seconds = 60.0
+retries = 2
+max_steps = 20
+max_output_bytes = 1000000
+max_context_tokens = 32000
+max_memory_bytes = 6000000000
+
+[tools]
+allowed = ["list_files", "search_text", "read_file"]
+test_commands = [["python", "-m", "pytest", "-q"]]
+
+[telemetry]
+enabled = true
+include_prompts = false
+output_directory = "results"
+
+[budget]
+official_usd = 10.0
+warning_usd = 8.0
+stop_nonessential_usd = 9.0
