@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import os
 import tomllib
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 CONFIG_SCHEMA_VERSION = "1"
 TRACE_SCHEMA_VERSION = "1"
@@ -22,7 +23,7 @@ def _strict_keys(data: Mapping[str, Any], allowed: set[str], section: str) -> No
         raise ConfigError(f"unknown {section} option(s): {', '.join(sorted(unknown))}")
 
 
-def _positive(value: int | float, name: str) -> None:
+def _positive(value: float, name: str) -> None:
     if value <= 0:
         raise ConfigError(f"{name} must be greater than zero")
 
@@ -131,7 +132,7 @@ class LoomConfig:
     telemetry: Telemetry = field(default_factory=Telemetry)
     budget: Budget = field(default_factory=Budget)
 
-    def validate(self) -> "LoomConfig":
+    def validate(self) -> LoomConfig:
         if self.schema_version != CONFIG_SCHEMA_VERSION:
             raise ConfigError(f"unsupported configuration schema {self.schema_version!r}")
         if self.trace_schema_version != TRACE_SCHEMA_VERSION:
