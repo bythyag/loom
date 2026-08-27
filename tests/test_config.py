@@ -12,6 +12,7 @@ def test_defaults_are_valid_and_sanitized() -> None:
     assert config.sanitized()["budget"]["official_usd"] == 10.0
     assert "secret" not in repr(config.sanitized())
     assert secrets == {"openrouter_api_key": "secret"}
+    assert config.telemetry.hardware_sample_interval_seconds == 1.0
 
 
 def test_toml_and_cli_overrides_precedence(tmp_path: Path) -> None:
@@ -33,6 +34,7 @@ def test_toml_and_cli_overrides_precedence(tmp_path: Path) -> None:
         {"endpoints": {"ollama": "http://example.com:11434"}},
         {"endpoints": {"openrouter": "http://openrouter.ai/api/v1"}},
         {"schema_version": "999"},
+        {"telemetry": {"hardware_sample_interval_seconds": 0}},
     ],
 )
 def test_rejects_unknown_or_unsafe_values(data: dict[str, object]) -> None:
