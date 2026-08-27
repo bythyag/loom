@@ -104,6 +104,15 @@ class Telemetry:
     enabled: bool = True
     include_prompts: bool = False
     output_directory: str = "results"
+    hardware_sample_interval_seconds: float = 1.0
+    collect_thermal: bool = True
+    collect_energy: bool = False
+
+    def validate(self) -> None:
+        _positive(
+            self.hardware_sample_interval_seconds,
+            "telemetry.hardware_sample_interval_seconds",
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -141,6 +150,7 @@ class LoomConfig:
         self.routing.validate()
         self.limits.validate()
         self.tools.validate()
+        self.telemetry.validate()
         self.budget.validate()
         return self
 
@@ -169,7 +179,17 @@ _SECTIONS: dict[str, tuple[type[Any], set[str]]] = {
         },
     ),
     "tools": (Tools, {"allowed", "test_commands"}),
-    "telemetry": (Telemetry, {"enabled", "include_prompts", "output_directory"}),
+    "telemetry": (
+        Telemetry,
+        {
+            "enabled",
+            "include_prompts",
+            "output_directory",
+            "hardware_sample_interval_seconds",
+            "collect_thermal",
+            "collect_energy",
+        },
+    ),
     "budget": (Budget, {"official_usd", "warning_usd", "stop_nonessential_usd"}),
 }
 
