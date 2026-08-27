@@ -77,6 +77,10 @@ or `uv sync --extra mlx`. Copy `.env.example` to `.env` for local secrets.
 `OPENROUTER_API_KEY` is read only from the process environment or that ignored
 local file; it does not belong in `config.example.toml`.
 
+See the [macOS development setup guide](docs/setup.md) for Python and `uv`
+installation, Ollama and MLX-LM smoke tests, optional OpenRouter configuration,
+disk-space planning, and safe experiment cleanup.
+
 ## License
 
 Licensed under the Apache License 2.0. See [LICENSE](LICENSE).
