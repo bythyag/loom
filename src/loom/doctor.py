@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import platform
 import shutil
 import sys
@@ -22,7 +23,7 @@ class Check:
 
 def run_doctor(config: LoomConfig, *, environ: dict[str, str] | None = None) -> tuple[Check, ...]:
     """Return actionable checks; API-key values are deliberately never emitted."""
-    environment = environ or {}
+    environment = os.environ if environ is None else environ
     system = platform.system()
     machine = platform.machine().lower()
     checks = [
@@ -32,7 +33,9 @@ def run_doctor(config: LoomConfig, *, environ: dict[str, str] | None = None) -> 
         Check("mlx_lm", importlib.util.find_spec("mlx_lm") is not None, "install the mlx extra if absent"),
         Check("vm_stat", shutil.which("vm_stat") is not None, "required for macOS telemetry"),
         Check("memory_pressure", shutil.which("memory_pressure") is not None, "required for memory gates"),
+        Check("free_disk", shutil.disk_usage(".").free > 0, "working directory has free disk"),
         Check("result_directory", Path(config.telemetry.output_directory).parent.exists(), config.telemetry.output_directory),
+        Check("sysctl", shutil.which("sysctl") is not None, "required for hardware identity"),
         Check("openrouter_credential", bool(environment.get("OPENROUTER_API_KEY")), "present" if environment.get("OPENROUTER_API_KEY") else "not configured", required=False),
     ]
     return tuple(checks)

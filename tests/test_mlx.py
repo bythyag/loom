@@ -1,5 +1,7 @@
 import asyncio
 
+import pytest
+
 from loom.adapters import AdapterRequest, StreamComplete, StreamError, StreamText
 from loom.contracts import ModelRequest
 from loom.mlx import MlxLmAdapter, MlxModelIdentity, MlxUnavailableError
@@ -14,18 +16,20 @@ def test_mlx_adapter_normalizes_response_and_reuses_loaded_model() -> None:
     adapter = MlxLmAdapter(
         MlxModelIdentity("org/model", "abc123", "4bit", "sha256:abc"),
         loader=lambda model: (loads.append(model) or object(), object()),
-        generator=lambda *args, **kwargs: "hello",
-        clock=iter((0.0, 0.2, 1.0, 1.5)).__next__,
+        generator=lambda *args, **kwargs: iter(("hel", "lo")),
+        resolver=lambda identity: f"/models/{identity.revision}",
+        clock=iter((0.0, 0.2, 1.0, 1.2, 1.5)).__next__,
     )
 
     async def consume() -> list[object]:
         return [event async for event in adapter.stream(request())]
 
     events = asyncio.run(consume())
-    assert loads == ["org/model"]
+    assert loads == ["/models/abc123"]
     assert isinstance(events[0], StreamText)
     assert isinstance(events[-1], StreamComplete)
     assert events[-1].response.timing.model_load_ms == 200
+    assert events[-1].response.timing.time_to_first_token_ms == pytest.approx(200)
 
 
 def test_mlx_adapter_returns_classified_error_when_runtime_is_unavailable() -> None:
@@ -36,6 +40,7 @@ def test_mlx_adapter_returns_classified_error_when_runtime_is_unavailable() -> N
         MlxModelIdentity("org/model", "abc"),
         loader=unavailable,
         generator=lambda *_args, **_kwargs: "unused",
+        resolver=lambda _identity: "/models/abc",
     )
 
     async def consume() -> list[object]:
@@ -47,7 +52,27 @@ def test_mlx_adapter_returns_classified_error_when_runtime_is_unavailable() -> N
 
 
 def test_release_drops_loaded_runtime() -> None:
-    adapter = MlxLmAdapter(MlxModelIdentity("org/model", "abc"), loader=lambda _: (object(), object()), generator=lambda *_a, **_k: "ok")
+    adapter = MlxLmAdapter(
+        MlxModelIdentity("org/model", "abc"),
+        loader=lambda _: (object(), object()),
+        generator=lambda *_a, **_k: "ok",
+        resolver=lambda _identity: "/models/abc",
+    )
     adapter._ensure_loaded()
     asyncio.run(adapter.release())
     assert adapter._model is None
+
+
+def test_mlx_adapter_rejects_tool_requests_until_tool_calls_are_normalized() -> None:
+    adapter = MlxLmAdapter(MlxModelIdentity("org/model", "abc"))
+    request_with_tool = AdapterRequest(
+        ModelRequest("req", "op", ({"role": "user", "content": "hi"},), ({"name": "search"},)),
+        "mlx/test-v1",
+    )
+
+    async def consume() -> list[object]:
+        return [event async for event in adapter.stream(request_with_tool)]
+
+    events = asyncio.run(consume())
+    assert isinstance(events[0], StreamError)
+    assert events[0].error.category == "unsupported_output"
