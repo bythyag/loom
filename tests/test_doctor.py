@@ -19,3 +19,11 @@ def test_doctor_reads_the_real_environment_by_default(monkeypatch) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "present-but-secret")
     checks = run_doctor(LoomConfig())
     assert next(check for check in checks if check.name == "openrouter_credential").detail == "present"
+
+
+def test_doctor_records_ollama_reachability_without_raising() -> None:
+    class Response:
+        is_success = True
+
+    checks = run_doctor(LoomConfig(), environ={}, http_get=lambda _url: Response())
+    assert next(check for check in checks if check.name == "ollama").ok
