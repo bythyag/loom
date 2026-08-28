@@ -60,3 +60,17 @@ def test_doctor_requires_configured_ollama_model_to_be_installed() -> None:
     model = next(check for check in checks if check.name == "ollama_model")
     assert not model.ok
     assert model.required
+
+
+def test_doctor_does_not_accept_a_model_when_ollama_version_check_fails() -> None:
+    class Response:
+        is_success = False
+
+        def json(self):
+            return {"models": [{"name": "present:1"}]}
+
+    checks = run_doctor(
+        LoomConfig(models=Models(ollama="present:1")), environ={}, http_get=lambda _url: Response()
+    )
+    model = next(check for check in checks if check.name == "ollama_model")
+    assert not model.ok

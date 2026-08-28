@@ -55,15 +55,18 @@ def run_doctor(
         ollama_ok = bool(getattr(response, "is_success", False))
         payload = response.json() if ollama_ok else {}
         ollama_version = str(payload.get("version", "unknown")) if isinstance(payload, dict) else "unknown"
-        tags = http_get(f"{config.endpoints.ollama}/api/tags")
-        tag_payload = tags.json() if bool(getattr(tags, "is_success", False)) else {}
-        if isinstance(tag_payload, dict) and isinstance(tag_payload.get("models"), list):
-            ollama_models = {
-                str(model["name"])
-                for model in tag_payload["models"]
-                if isinstance(model, dict) and isinstance(model.get("name"), str)
-            }
-        ollama_detail = f"reachable; version {ollama_version}; {len(ollama_models)} model(s)"
+        if ollama_ok:
+            tags = http_get(f"{config.endpoints.ollama}/api/tags")
+            tag_payload = tags.json() if bool(getattr(tags, "is_success", False)) else {}
+            if isinstance(tag_payload, dict) and isinstance(tag_payload.get("models"), list):
+                ollama_models = {
+                    str(model["name"])
+                    for model in tag_payload["models"]
+                    if isinstance(model, dict) and isinstance(model.get("name"), str)
+                }
+            ollama_detail = f"reachable; version {ollama_version}; {len(ollama_models)} model(s)"
+        else:
+            ollama_detail = "returned non-success status"
     except (AttributeError, httpx.HTTPError, OSError, RuntimeError, ValueError) as exc:
         ollama_ok = False
         ollama_detail = f"unreachable: {exc}"
@@ -85,7 +88,7 @@ def run_doctor(
         Check("ollama", ollama_ok, ollama_detail, required=False),
         Check(
             "ollama_model",
-            not configured_ollama or configured_ollama in ollama_models,
+            not configured_ollama or (ollama_ok and configured_ollama in ollama_models),
             (
                 f"configured model {configured_ollama} is installed"
                 if configured_ollama in ollama_models
