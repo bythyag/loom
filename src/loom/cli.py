@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 from typing import Annotated
 
@@ -25,7 +26,7 @@ def doctor(
     """Check the local runtime without exposing credentials."""
     try:
         resolved, _secrets = load_config(config)
-    except (ConfigError, OSError) as exc:
+    except (ConfigError, OSError, tomllib.TOMLDecodeError) as exc:
         typer.echo(f"error: invalid configuration: {exc}", err=True)
         raise typer.Exit(2) from exc
     checks = run_doctor(resolved)

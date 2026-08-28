@@ -17,3 +17,11 @@ def test_doctor_rejects_invalid_configuration(tmp_path) -> None:
     result = CliRunner().invoke(app, ["doctor", "--config", str(config)])
     assert result.exit_code == 2
     assert "invalid configuration" in result.output
+
+
+def test_doctor_rejects_malformed_toml(tmp_path) -> None:
+    config = tmp_path / "invalid.toml"
+    config.write_text("[routing\n")
+    result = CliRunner().invoke(app, ["doctor", "--config", str(config)])
+    assert result.exit_code == 2
+    assert "invalid configuration" in result.output
