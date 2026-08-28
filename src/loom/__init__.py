@@ -11,12 +11,15 @@ from loom.contracts import (
     ToolResult,
     TraceEvent,
 )
+from loom.mlx import MlxLmAdapter, MlxModelIdentity
 
 __version__ = "0.1.0.dev0"
 
 __all__ = [
     "AdapterRequest",
     "HardwareSnapshot",
+    "MlxLmAdapter",
+    "MlxModelIdentity",
     "ModelAdapter",
     "ModelRequest",
     "ModelResponse",
