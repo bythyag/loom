@@ -23,6 +23,10 @@ class ModelCandidate:
     template: str | None = None
     artifact_id: str | None = None
 
+    def __post_init__(self) -> None:
+        if self.context_tokens is not None and self.context_tokens <= 0:
+            raise ValueError("candidate context tokens must be positive")
+
 
 @dataclass(frozen=True, slots=True)
 class BenchmarkMeasurement:
@@ -41,8 +45,13 @@ class BenchmarkMeasurement:
     failure: str | None = None
 
     def __post_init__(self) -> None:
-        if any(value < 0 for value in (self.load_ms, self.ttft_ms, self.total_ms, self.peak_memory_bytes, self.swap_delta_bytes)):
+        if any(value < 0 for value in (self.load_ms, self.ttft_ms, self.total_ms, self.peak_memory_bytes, self.swap_delta_bytes, self.prompt_tokens, self.output_tokens)):
             raise ValueError("benchmark measurements cannot be negative")
+        if any(
+            value is not None and value < 0
+            for value in (self.prompt_tokens_per_second, self.generation_tokens_per_second)
+        ):
+            raise ValueError("benchmark throughput cannot be negative")
         if self.success and self.failure is not None:
             raise ValueError("successful benchmark results cannot carry failures")
 

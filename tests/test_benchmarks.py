@@ -27,6 +27,23 @@ def test_successful_measurement_cannot_include_failure() -> None:
         BenchmarkMeasurement(candidate(), True, True, 1, 1, 1, 1, 1, failure="no")
 
 
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"output_tokens": -1}, "measurements cannot"),
+        ({"generation_tokens_per_second": -1}, "throughput cannot"),
+    ],
+)
+def test_measurements_reject_invalid_evidence(kwargs, message) -> None:
+    with pytest.raises(ValueError, match=message):
+        BenchmarkMeasurement(candidate(), True, True, 1, 1, 1, 1, 1, **kwargs)
+
+
+def test_candidate_rejects_nonpositive_context_limit() -> None:
+    with pytest.raises(ValueError, match="context tokens"):
+        ModelCandidate("mlx", "org/model", "abc123", "<=2b", "4bit", "Apache-2.0", context_tokens=0)
+
+
 def test_runner_uses_identical_cold_and_warm_workloads_and_retains_failures(tmp_path) -> None:
     calls: list[tuple[bool, str, int]] = []
 
