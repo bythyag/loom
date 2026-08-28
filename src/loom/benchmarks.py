@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable, Iterable
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -18,6 +19,9 @@ class ModelCandidate:
     parameter_class: Literal["<=2b", "3b-4b", "7b-8b"]
     quantization: str
     license: str
+    context_tokens: int | None = None
+    template: str | None = None
+    artifact_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,6 +36,8 @@ class BenchmarkMeasurement:
     swap_delta_bytes: int
     prompt_tokens: int = 0
     output_tokens: int = 0
+    prompt_tokens_per_second: float | None = None
+    generation_tokens_per_second: float | None = None
     failure: str | None = None
 
     def __post_init__(self) -> None:
@@ -57,6 +63,8 @@ class BenchmarkRun:
     def __post_init__(self) -> None:
         if not self.run_id.strip() or not self.prompt.strip() or self.max_output_tokens <= 0:
             raise ValueError("benchmark run id, prompt, and output limit must be valid")
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", self.run_id):
+            raise ValueError("benchmark run id must be a safe filename token")
 
     def manifest(self) -> dict[str, object]:
         return {
@@ -72,9 +80,8 @@ class BenchmarkRun:
         output = Path(directory)
         output.mkdir(parents=True, exist_ok=True)
         path = output / f"{self.run_id}.json"
-        if path.exists():
-            raise FileExistsError(f"benchmark artifact already exists: {path}")
-        path.write_text(json.dumps(self.manifest(), indent=2, sort_keys=True) + "\n")
+        with path.open("x") as stream:
+            stream.write(json.dumps(self.manifest(), indent=2, sort_keys=True) + "\n")
         return path
 
 

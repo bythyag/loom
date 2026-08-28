@@ -46,3 +46,9 @@ def test_runner_uses_identical_cold_and_warm_workloads_and_retains_failures(tmp_
     assert '"run_id": "run-1"' in artifact.read_text()
     with pytest.raises(FileExistsError):
         run.write(tmp_path)
+
+
+@pytest.mark.parametrize("run_id", ["../escape", "/absolute", "with space"])
+def test_artifact_rejects_unsafe_run_ids(run_id) -> None:
+    with pytest.raises(ValueError, match="safe filename"):
+        run_microbenchmarks(run_id, [], prompt="prompt", max_output_tokens=1, runner=lambda *_args: None)
