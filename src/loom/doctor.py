@@ -48,11 +48,26 @@ def run_doctor(
     except (AttributeError, OSError, ValueError):
         physical_memory = 0
     configured_mlx = config.models.mlx
+    configured_ollama = config.models.ollama
+    ollama_models: set[str] = set()
     try:
         response = http_get(f"{config.endpoints.ollama}/api/version")
         ollama_ok = bool(getattr(response, "is_success", False))
-        ollama_detail = "reachable" if ollama_ok else "returned non-success status"
-    except (httpx.HTTPError, OSError, RuntimeError) as exc:
+        payload = response.json() if ollama_ok else {}
+        ollama_version = str(payload.get("version", "unknown")) if isinstance(payload, dict) else "unknown"
+        if ollama_ok:
+            tags = http_get(f"{config.endpoints.ollama}/api/tags")
+            tag_payload = tags.json() if bool(getattr(tags, "is_success", False)) else {}
+            if isinstance(tag_payload, dict) and isinstance(tag_payload.get("models"), list):
+                ollama_models = {
+                    str(model["name"])
+                    for model in tag_payload["models"]
+                    if isinstance(model, dict) and isinstance(model.get("name"), str)
+                }
+            ollama_detail = f"reachable; version {ollama_version}; {len(ollama_models)} model(s)"
+        else:
+            ollama_detail = "returned non-success status"
+    except (AttributeError, httpx.HTTPError, OSError, RuntimeError, ValueError) as exc:
         ollama_ok = False
         ollama_detail = f"unreachable: {exc}"
     def package_version(name: str) -> str:
@@ -71,6 +86,16 @@ def run_doctor(
         Check("mlx_lm_version", importlib.util.find_spec("mlx_lm") is not None, package_version("mlx-lm")),
         Check("mlx_model", bool(configured_mlx), configured_mlx or "no MLX model configured", required=False),
         Check("ollama", ollama_ok, ollama_detail, required=False),
+        Check(
+            "ollama_model",
+            not configured_ollama or (ollama_ok and configured_ollama in ollama_models),
+            (
+                f"configured model {configured_ollama} is installed"
+                if configured_ollama in ollama_models
+                else ("no Ollama model configured" if not configured_ollama else f"missing configured model {configured_ollama}")
+            ),
+            required=bool(configured_ollama),
+        ),
         Check("powermetrics", shutil.which("powermetrics") is not None, "optional; never invoked without privilege", required=False),
         Check("vm_stat", shutil.which("vm_stat") is not None, "required for macOS telemetry"),
         Check("memory_pressure", shutil.which("memory_pressure") is not None, "required for memory gates"),
