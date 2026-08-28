@@ -7,6 +7,7 @@ adapter, which keeps non-Apple CI and ``loom doctor`` useful.
 from __future__ import annotations
 
 import importlib
+import re
 import time
 from collections.abc import AsyncIterator, Callable, Iterable
 from dataclasses import dataclass
@@ -28,6 +29,8 @@ class MlxModelIdentity:
     def __post_init__(self) -> None:
         if not self.repository.strip() or not self.revision.strip():
             raise ValueError("MLX model repository and revision must be non-empty")
+        if not re.fullmatch(r"[0-9a-fA-F]{40}", self.revision):
+            raise ValueError("MLX model revision must be a 40-character immutable commit SHA")
 
 
 class MlxUnavailableError(RuntimeError):
@@ -140,15 +143,23 @@ class MlxLmAdapter:
         text_parts: list[str] = []
         first_token_ms: float | None = None
         sequence = 0
-        for chunk in chunks:
-            text = str(getattr(chunk, "text", chunk))
-            if not text:
-                continue
-            if first_token_ms is None:
-                first_token_ms = (self._clock() - started) * 1000
-            text_parts.append(text)
-            yield StreamText(bound.request_id, sequence, text)
-            sequence += 1
+        try:
+            for chunk in chunks:
+                text = str(getattr(chunk, "text", chunk))
+                if not text:
+                    continue
+                if first_token_ms is None:
+                    first_token_ms = (self._clock() - started) * 1000
+                text_parts.append(text)
+                yield StreamText(bound.request_id, sequence, text)
+                sequence += 1
+        except (OSError, RuntimeError, TypeError, ValueError) as exc:
+            yield StreamError(
+                bound.request_id,
+                sequence,
+                StructuredError("provider_error", str(exc), True),
+            )
+            return
         text = "".join(text_parts)
         total_ms = (self._clock() - started) * 1000
         yield StreamComplete(
