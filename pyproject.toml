@@ -21,6 +21,9 @@ dependencies = [
   "typer>=0.12,<1",
 ]
 
+[project.scripts]
+loom = "loom.cli:app"
+
 [project.optional-dependencies]
 ollama = [
   "ollama>=0.4,<1",
