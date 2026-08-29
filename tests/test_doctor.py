@@ -1,5 +1,5 @@
 from loom.config import LoomConfig, Models
-from loom.doctor import Check, doctor_exit_code, run_doctor
+from loom.doctor import Check, _default_mlx_cache_probe, doctor_exit_code, run_doctor
 
 
 def test_doctor_does_not_expose_openrouter_secret() -> None:
@@ -105,3 +105,14 @@ def test_doctor_rejects_moving_mlx_revision_without_probing_cache() -> None:
     assert not model.ok
     assert model.required
     assert "commit SHA" in model.detail
+
+
+def test_default_mlx_cache_probe_handles_missing_cache(monkeypatch) -> None:
+    import huggingface_hub
+    from huggingface_hub.errors import CacheNotFound
+
+    def missing_cache():
+        raise CacheNotFound("missing", "/tmp/missing-cache")
+
+    monkeypatch.setattr(huggingface_hub, "scan_cache_dir", missing_cache)
+    assert not _default_mlx_cache_probe("owner/model", "a" * 40)

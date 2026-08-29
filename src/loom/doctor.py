@@ -38,15 +38,17 @@ def _default_mlx_cache_probe(repository: str, revision: str) -> bool:
     """Inspect the local Hugging Face cache without network or Metal initialization."""
     try:
         from huggingface_hub import scan_cache_dir
+        from huggingface_hub.errors import CacheNotFound
     except ImportError:
         return False
     try:
         cache = scan_cache_dir()
-    except (OSError, RuntimeError):
+    except (CacheNotFound, OSError, RuntimeError, ValueError):
         return False
+    normalized_revision = revision.lower()
     return any(
         repo.repo_id == repository
-        and any(cached.commit_hash == revision for cached in repo.revisions)
+        and any(cached.commit_hash.lower() == normalized_revision for cached in repo.revisions)
         for repo in cache.repos
     )
 
@@ -78,10 +80,12 @@ def run_doctor(
         except ValueError:
             mlx_model_detail = "MLX model must use repository@40-character-commit-sha"
         else:
-            if not re.fullmatch(r"[0-9a-fA-F]{40}", mlx_revision):
+            if not re.fullmatch(r"[A-Za-z0-9._-]+/[A-Za-z0-9._-]+", mlx_repository):
+                mlx_model_detail = "MLX model repository must use owner/name"
+            elif not re.fullmatch(r"[0-9a-fA-F]{40}", mlx_revision):
                 mlx_model_detail = "MLX model revision must be a 40-character commit SHA"
             else:
-                mlx_model_ok = mlx_cache_probe(mlx_repository, mlx_revision)
+                mlx_model_ok = mlx_cache_probe(mlx_repository, mlx_revision.lower())
                 mlx_model_detail = (
                     "configured immutable MLX model is cached"
                     if mlx_model_ok
