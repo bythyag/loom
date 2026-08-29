@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import os
 import platform
+import re
 import shutil
 import sys
 from collections.abc import Callable
@@ -26,10 +27,30 @@ class Check:
 
 
 HttpGet = Callable[[str], object]
+MlxCacheProbe = Callable[[str, str], bool]
 
 
 def _default_get(url: str) -> object:
     return httpx.get(url, timeout=1.0)
+
+
+def _default_mlx_cache_probe(repository: str, revision: str) -> bool:
+    """Inspect the local Hugging Face cache without network or Metal initialization."""
+    try:
+        from huggingface_hub import scan_cache_dir
+        from huggingface_hub.errors import CacheNotFound
+    except ImportError:
+        return False
+    try:
+        cache = scan_cache_dir()
+    except (CacheNotFound, OSError, RuntimeError, ValueError):
+        return False
+    normalized_revision = revision.lower()
+    return any(
+        repo.repo_id == repository
+        and any(cached.commit_hash.lower() == normalized_revision for cached in repo.revisions)
+        for repo in cache.repos
+    )
 
 
 def run_doctor(
@@ -37,6 +58,7 @@ def run_doctor(
     *,
     environ: dict[str, str] | None = None,
     http_get: HttpGet = _default_get,
+    mlx_cache_probe: MlxCacheProbe = _default_mlx_cache_probe,
 ) -> tuple[Check, ...]:
     """Return actionable checks; API-key values are deliberately never emitted."""
     environment = os.environ if environ is None else environ
@@ -48,6 +70,27 @@ def run_doctor(
     except (AttributeError, OSError, ValueError):
         physical_memory = 0
     configured_mlx = config.models.mlx
+    mlx_repository = ""
+    mlx_revision = ""
+    mlx_model_ok = False
+    mlx_model_detail = "no MLX model configured"
+    if configured_mlx:
+        try:
+            mlx_repository, mlx_revision = configured_mlx.rsplit("@", 1)
+        except ValueError:
+            mlx_model_detail = "MLX model must use repository@40-character-commit-sha"
+        else:
+            if not re.fullmatch(r"[A-Za-z0-9._-]+/[A-Za-z0-9._-]+", mlx_repository):
+                mlx_model_detail = "MLX model repository must use owner/name"
+            elif not re.fullmatch(r"[0-9a-fA-F]{40}", mlx_revision):
+                mlx_model_detail = "MLX model revision must be a 40-character commit SHA"
+            else:
+                mlx_model_ok = mlx_cache_probe(mlx_repository, mlx_revision.lower())
+                mlx_model_detail = (
+                    "configured immutable MLX model is cached"
+                    if mlx_model_ok
+                    else "configured immutable MLX model is not cached"
+                )
     configured_ollama = config.models.ollama
     ollama_models: set[str] = set()
     try:
@@ -84,7 +127,7 @@ def run_doctor(
         Check("physical_memory", physical_memory > 0, f"{physical_memory} bytes reported"),
         Check("mlx_lm", importlib.util.find_spec("mlx_lm") is not None, "install the mlx extra if absent"),
         Check("mlx_lm_version", importlib.util.find_spec("mlx_lm") is not None, package_version("mlx-lm")),
-        Check("mlx_model", bool(configured_mlx), configured_mlx or "no MLX model configured", required=False),
+        Check("mlx_model", mlx_model_ok, mlx_model_detail, required=bool(configured_mlx)),
         Check("ollama", ollama_ok, ollama_detail, required=False),
         Check(
             "ollama_model",

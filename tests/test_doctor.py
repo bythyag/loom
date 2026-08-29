@@ -1,5 +1,5 @@
 from loom.config import LoomConfig, Models
-from loom.doctor import Check, doctor_exit_code, run_doctor
+from loom.doctor import Check, _default_mlx_cache_probe, doctor_exit_code, run_doctor
 
 
 def test_doctor_does_not_expose_openrouter_secret() -> None:
@@ -74,3 +74,45 @@ def test_doctor_does_not_accept_a_model_when_ollama_version_check_fails() -> Non
     )
     model = next(check for check in checks if check.name == "ollama_model")
     assert not model.ok
+
+
+def test_doctor_requires_an_immutable_cached_mlx_model() -> None:
+    revision = "a" * 40
+    calls = []
+
+    def probe(repository, commit):
+        calls.append((repository, commit))
+        return True
+
+    checks = run_doctor(
+        LoomConfig(models=Models(mlx=f"mlx-community/model@{revision}")),
+        environ={},
+        mlx_cache_probe=probe,
+    )
+    model = next(check for check in checks if check.name == "mlx_model")
+    assert model.ok
+    assert model.required
+    assert calls == [("mlx-community/model", revision)]
+
+
+def test_doctor_rejects_moving_mlx_revision_without_probing_cache() -> None:
+    checks = run_doctor(
+        LoomConfig(models=Models(mlx="mlx-community/model@main")),
+        environ={},
+        mlx_cache_probe=lambda *_args: (_ for _ in ()).throw(AssertionError("must not probe")),
+    )
+    model = next(check for check in checks if check.name == "mlx_model")
+    assert not model.ok
+    assert model.required
+    assert "commit SHA" in model.detail
+
+
+def test_default_mlx_cache_probe_handles_missing_cache(monkeypatch) -> None:
+    import huggingface_hub
+    from huggingface_hub.errors import CacheNotFound
+
+    def missing_cache():
+        raise CacheNotFound("missing", "/tmp/missing-cache")
+
+    monkeypatch.setattr(huggingface_hub, "scan_cache_dir", missing_cache)
+    assert not _default_mlx_cache_probe("owner/model", "a" * 40)
