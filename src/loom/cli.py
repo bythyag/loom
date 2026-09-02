@@ -50,7 +50,9 @@ def agent_command(
     repo: Annotated[Path, typer.Option(exists=True, file_okay=False, readable=True)],
     task: Annotated[str, typer.Option(help="Task text; may be sent to the selected model.")],
     mode: Annotated[Literal["cloud", "ollama", "mlx", "loom"], typer.Option()] = "loom",
-    output_root: Annotated[Path, typer.Option(help="Creates a run directory here.")] = Path("results"),
+    output_root: Annotated[Path, typer.Option(help="Creates a run directory here.")] = Path(
+        "results"
+    ),
 ) -> None:
     """Create a bounded agent run (models may run and repository files may change)."""
     if not task.strip():
@@ -66,7 +68,9 @@ def benchmark_command(
     suite: Annotated[str, typer.Option()] = "v0.1",
     mode: Annotated[Literal["cloud", "ollama", "mlx", "loom"], typer.Option()] = "loom",
     repeat: Annotated[int, typer.Option(min=1)] = 1,
-    output_root: Annotated[Path, typer.Option(help="Creates benchmark artifacts here.")] = Path("results"),
+    output_root: Annotated[Path, typer.Option(help="Creates benchmark artifacts here.")] = Path(
+        "results"
+    ),
 ) -> None:
     """Create a benchmark run (may invoke models and incur cloud charges)."""
     if suite != "v0.1":

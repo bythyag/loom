@@ -31,7 +31,16 @@ def test_agent_creates_run_and_prints_identity(tmp_path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
     result = CliRunner().invoke(
-        app, ["agent", "--repo", str(repo), "--task", "inspect", "--output-root", str(tmp_path / "runs")]
+        app,
+        [
+            "agent",
+            "--repo",
+            str(repo),
+            "--task",
+            "inspect",
+            "--output-root",
+            str(tmp_path / "runs"),
+        ],
     )
     assert result.exit_code == 0
     assert "run_id: agent-" in result.output
