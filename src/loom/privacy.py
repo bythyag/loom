@@ -9,7 +9,9 @@ from typing import Any
 
 REDACTED = "[REDACTED]"
 OMITTED = "[OMITTED BY PRIVACY POLICY]"
-_SECRET_KEYS = re.compile(r"(?:api[_-]?key|authorization|token|secret|password|cookie)", re.IGNORECASE)
+_SECRET_KEYS = re.compile(
+    r"(?:api[_-]?key|authorization|token|secret|password|cookie)", re.IGNORECASE
+)
 _BEARER = re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/-]+={0,2}")
 _KNOWN_KEYS = re.compile(r"\b(?:sk-or-v1-|sk-)[A-Za-z0-9_-]{12,}\b")
 _ABSOLUTE_PATH = re.compile(r"(?<![\w.-])/(?:Users|home)/[^\s/:]+")
